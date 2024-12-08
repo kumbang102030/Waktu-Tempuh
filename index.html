@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laju Perjalanan</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #b3e0ff; /* Baby Blue */
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #007bb5;
+        }
+
+        .form-container {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+        }
+
+        select, input[type="text"], input[type="time"] {
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bb5;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #005f8a;
+        }
+
+        /* Styling untuk Tabel */
+        table {
+            margin-top: 30px;
+            width: 80%;
+            border-collapse: collapse;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #007bb5;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        /* Styling untuk Output Rata-rata */
+        #average-time {
+            margin-top: 30px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #007bb5;
+        }
+
+        #estimated-arrival {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #007bb5;
+        }
+
+        /* Form untuk estimasi waktu kedatangan */
+        .estimate-container {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+        }
+
+        .estimate-container input {
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Laju Perjalanan</h1>
+
+    <!-- Form Input untuk mencatat perjalanan -->
+    <div class="form-container">
+        <h3>Masukkan Informasi Perjalanan</h3>
+        <input type="text" id="from" placeholder="Berangkat dari (asal)" required>
+        <input type="text" id="to" placeholder="Tujuan" required>
+        <input type="time" id="departure" required>
+        <input type="time" id="arrival" required>
+        <button onclick="addJourney()">Tambah Perjalanan</button>
+    </div>
+
+    <!-- Tabel untuk Menampilkan Data Perjalanan -->
+    <table id="journey-table">
+        <thead>
+            <tr>
+                <th>Asal</th>
+                <th>Tujuan</th>
+                <th>Waktu Berangkat</th>
+                <th>Waktu Sampai</th>
+                <th>Durasi Perjalanan (Jam:Menit)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data perjalanan akan ditambahkan di sini -->
+        </tbody>
+    </table>
+
+    <!-- Output Rata-rata waktu perjalanan -->
+    <div id="average-time"></div>
+
+    <!-- Output Perkiraan Waktu Sampai -->
+    <div id="estimated-arrival"></div>
+
+    <!-- Form Input untuk estimasi waktu kedatangan -->
+    <div class="estimate-container">
+        <h3>Estimasi Waktu Sampai</h3>
+        <input type="text" id="estimate-from" placeholder="Masukkan asal" required>
+        <input type="text" id="estimate-to" placeholder="Masukkan tujuan" required>
+        <input type="time" id="estimate-departure" required>
+        <button onclick="estimateArrival()">Estimasi Waktu Sampai</button>
+    </div>
+
+    <script>
+        let journeys = []; // Array untuk menyimpan data perjalanan
+
+        // Fungsi untuk memuat data perjalanan yang tersimpan
+        function loadJourneys() {
+            const storedJourneys = localStorage.getItem('journeys');
+            if (storedJourneys) {
+                journeys = JSON.parse(storedJourneys);
+                displayJourneys();
+                calculateAverage();
+            }
+        }
+
+        // Fungsi untuk menambahkan perjalanan
+        function addJourney() {
+            const from = document.getElementById("from").value;
+            const to = document.getElementById("to").value;
+            const departure = document.getElementById("departure").value;
+            const arrival = document.getElementById("arrival").value;
+
+            if (!from || !to || !departure || !arrival) {
+                alert("Semua data harus diisi!");
+                return;
+            }
+
+            // Menghitung durasi perjalanan
+            const departureTime = new Date(`1970-01-01T${departure}:00`);
+            const arrivalTime = new Date(`1970-01-01T${arrival}:00`);
+
+            let duration = (arrivalTime - departureTime) / 1000 / 60; // Durasi dalam menit
+
+            if (duration < 0) {
+                // Jika durasi negatif (artinya sampai lebih dari 24 jam), tambahkan 24 jam ke durasi
+                duration += 24 * 60;
+            }
+
+            const hours = Math.floor(duration / 60);
+            const minutes = duration % 60;
+
+            // Menyimpan data perjalanan
+            journeys.push({ from, to, departure, arrival, duration: `${hours}:${minutes < 10 ? '0' : ''}${minutes}` });
+
+            // Menyimpan data perjalanan ke localStorage
+            localStorage.setItem('journeys', JSON.stringify(journeys));
+
+            // Menampilkan data perjalanan dalam tabel
+            displayJourneys();
+
+            // Menghitung dan menampilkan rata-rata waktu perjalanan
+            calculateAverage();
+        }
+
+        // Fungsi untuk menampilkan data perjalanan dalam tabel
+        function displayJourneys() {
+            const tableBody = document.getElementById("journey-table").getElementsByTagName("tbody")[0];
+            tableBody.innerHTML = ""; // Menghapus isi tabel sebelum menambah data baru
+
+            journeys.forEach(journey => {
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td>${journey.from}</td>
+                    <td>${journey.to}</td>
+                    <td>${journey.departure}</td>
+                    <td>${journey.arrival}</td>
+                    <td>${journey.duration}</td>
+                `;
+            });
+        }
+
+        // Fungsi untuk menghitung rata-rata waktu perjalanan
+        function calculateAverage() {
+            if (journeys.length === 0) {
+                document.getElementById("average-time").textContent = "";
+                return;
+            }
+
+            let totalDuration = 0;
+
+            journeys.forEach(journey => {
+                const [hours, minutes] = journey.duration.split(":").map(Number);
+                totalDuration += hours * 60 + minutes;
+            });
+
+            const averageDuration = totalDuration / journeys.length; // Rata-rata dalam menit
+            const averageHours = Math.floor(averageDuration / 60);
+            const averageMinutes = Math.round(averageDuration % 60);
+
+            document.getElementById("average-time").textContent = `Rata-rata Durasi Perjalanan: ${averageHours} Jam ${averageMinutes} Menit`;
+        }
+
+        // Fungsi untuk menghitung perkiraan waktu sampai berdasarkan rata-rata perjalanan
+        function estimateArrival() {
+            const from = document.getElementById("estimate-from").value;
+            const to = document.getElementById("estimate-to").value;
+            const departure = document.getElementById("estimate-departure").value;
+
+            // Memastikan ada perjalanan yang relevan
+            const relevantJourney = journeys.find(journey => journey.from === from && journey.to === to);
+
+            if (!relevantJourney) {
+                alert("Tidak ada perjalanan yang relevan untuk estimasi!");
+                return;
+            }
+
+            const [hours, minutes] = relevantJourney.duration.split(":").map(Number);
+            const departureTime = new Date(`1970-01-01T${departure}:00`);
+
+            // Menambahkan rata-rata durasi perjalanan ke waktu berangkat
+            departureTime.setMinutes(departureTime.getMinutes() + (hours * 60) + minutes);
+
+            // Menampilkan perkiraan waktu sampai
+            const estimatedArrival = `${String(departureTime.getHours()).padStart(2, '0')}:${String(departureTime.getMinutes()).padStart(2, '0')}`;
+
+            document.getElementById("estimated-arrival").textContent = `Perkiraan Waktu Sampai: ${estimatedArrival}`;
+        }
+
+        // Memuat data perjalanan saat halaman dimuat
+        window.onload = loadJourneys;
+    </script>
+
+</body>
+</html>
